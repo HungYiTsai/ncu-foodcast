@@ -1,0 +1,21 @@
+# 機敏資訊：API 金鑰絕對不要上傳
+.env
+.streamlit/secrets.toml
+
+# 由程式產生的檔案（clone 後執行即可重新產生）
+models/*.joblib
+models/*.csv
+models/metrics.json
+data/*.csv
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# 系統/編輯器
+.DS_Store
+.vscode/
+.idea/

@@ -1,0 +1,11 @@
+# 核心套件（必要）
+streamlit>=1.50
+pandas>=2.2
+numpy>=1.26
+scikit-learn>=1.5
+plotly>=5.20
+joblib>=1.4
+# 開發/測試
+pytest>=8.0
+# 選用：要啟用 LLM 模式（Azure OpenAI / OpenAI）才需要安裝
+# openai>=1.40
