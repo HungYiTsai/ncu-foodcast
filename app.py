@@ -13,6 +13,7 @@ nav = st.navigation([
     st.Page("pages/student.py", title="學生人潮預報", icon="🎓"),
     st.Page("pages/store.py", title="店家備餐建議", icon="🧑‍🍳"),
     st.Page("pages/analysis.py", title="模型分析", icon="📊"),
+    st.Page("pages/upload.py", title="上傳真實資料", icon="📤"),
     st.Page("pages/assistant.py", title="AI 助理", icon="🤖"),
 ])
 nav.run()
