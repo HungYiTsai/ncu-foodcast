@@ -1,10 +1,11 @@
-"""模型分析：模型比較、特徵重要性、預測 vs 實際、每日剩食回測。給評審與 Q&A 用。"""
+"""模型分析：模型比較、特徵重要性、預測 vs 實際、每日剩食回測、超參數調整、錯誤分析。給評審與 Q&A 用。"""
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import streamlit as st
 
 from foodcast import config
+from foodcast import error_analysis as ea
 from foodcast.ui import get_metrics, get_models
 
 get_models()
@@ -103,3 +104,37 @@ else:
         st.warning(f"CV 最佳的設定在測試集**沒有比較好**：它和原本設定的 CV 差距只有 {gap:.2f} 人，"
                    f"比各 fold 的標準差（約 {res['cv_std'].iloc[0]:.1f} 人）還小，代表差異多半是隨機波動。"
                    "因此我們**維持原本設定**，避免對驗證資料過度調參。")
+
+# ---- 6. 錯誤分析 ----
+st.subheader("6. 錯誤分析：模型什麼時候最容易猜錯？")
+err = ea.load_errors()
+sc = ea.by_scenario(err)
+c1, c2 = st.columns([1, 1])
+c1.dataframe(sc, hide_index=True, width="stretch")
+fig = px.bar(sc.sort_values("相對誤差 (%)"), x="相對誤差 (%)", y="情境", orientation="h",
+             text="相對誤差 (%)", labels={"情境": ""})
+fig.update_layout(height=340, margin=dict(t=10))
+c2.plotly_chart(fig, width="stretch")
+
+worst = sc.iloc[0]
+few = sc[sc["筆數"] < 60]["情境"].tolist()
+st.markdown(
+    f"- **相對誤差**＝MAE ÷ 平均人數。人少的日子誤差本來就小，所以用比例比較才公平。\n"
+    f"- 最難預測的情境是 **{worst['情境']}**（相對誤差 {worst['相對誤差 (%)']}%）"
+    + (f"；其中 {'、'.join(few)} 在測試期間的資料很少（每天 10 筆時段資料），結果比較不穩定。" if few else "。")
+    + "\n- **偏差**為正代表模型平均**高估**（店家會多備），為負代表**低估**（可能賣完）。"
+)
+
+st.markdown("**各時段的誤差**：尖峰時段人最多，絕對誤差也最大。")
+sl = ea.by_slot(err)
+fig = px.bar(sl, x="slot", y="MAE", color="meal", barmode="group",
+             category_orders={"slot": config.SLOTS["午餐"] + config.SLOTS["晚餐"]},
+             labels={"slot": "時段", "MAE": "MAE（人）", "meal": ""},
+             color_discrete_map={"午餐": "#2E7D9E", "晚餐": "#E07B39"})
+fig.update_layout(height=300, margin=dict(t=10))
+st.plotly_chart(fig, width="stretch")
+
+st.markdown("**整天誤差最大的日子**")
+st.dataframe(ea.worst_days(err), hide_index=True, width="stretch")
+st.caption("誤差最大的日子多半有下雨、考試週等特殊狀況，代表這些因素的影響大小每次不同，"
+           "模型只能抓到平均效果。改善方向：加入更精確的天氣資料（例如降雨時段），或讓學生回報即時人潮來修正。")

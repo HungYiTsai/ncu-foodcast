@@ -5,7 +5,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from foodcast import config, explain, predict
+from foodcast import config, explain, feedback, predict
 from foodcast.ui import LEVEL_COLORS, get_models, sidebar_inputs
 
 crowd_model, _ = get_models()
@@ -70,3 +70,35 @@ fig2 = px.imshow(heat, color_continuous_scale="YlOrRd", aspect="auto", text_auto
 fig2.update_layout(height=360, margin=dict(t=10, b=10))
 st.plotly_chart(fig2, width="stretch")
 st.caption("第 2 天之後使用該月平均氣溫、不下雨的預設天氣。")
+
+# ---- 學生回報 ----
+st.subheader("📣 回報現在的排隊狀況")
+st.caption("幫忙回報實際排隊情形，可以用來檢查預測準不準，也會累積成未來的訓練資料。")
+default_meal, default_slot = feedback.nearest_slot(dt.datetime.now())
+with st.form("feedback_form", clear_on_submit=True):
+    # 表單內的元件要按送出才會更新，所以把「餐別＋時段」合成一個選項，避免時段清單跟不上餐別
+    choices = [f"{m} {s}" for m in config.MEALS for s in config.SLOTS[m]]
+    c1, c2 = st.columns([1, 3])
+    fb_choice = c1.selectbox("時段", choices, index=choices.index(f"{default_meal} {default_slot}"))
+    fb_queue = c2.radio("排隊情形", list(feedback.QUEUE_OPTIONS), horizontal=True)
+    submitted = st.form_submit_button("送出回報")
+    fb_meal, fb_slot = fb_choice.split()
+if submitted:
+    # 回報的是「今天」的狀況，所以用今天的日期和側邊欄的天氣重新預測該時段
+    today = dt.date.today()
+    today_crowd = predict.forecast_crowd(crowd_model, today, temp, rain, event)
+    row = today_crowd[(today_crowd["meal"] == fb_meal) & (today_crowd["slot"] == fb_slot)].iloc[0]
+    rec = feedback.save(today, fb_meal, fb_slot, fb_queue, row["level"], row["customers"])
+    same = rec["reported_level"] == rec["predicted_level"]
+    st.success(f"感謝回報！你回報「{rec['reported_level']}」，模型預測「{rec['predicted_level']}」"
+               + ("，預測正確 👍" if same else "，會作為改進模型的參考。"))
+
+fb = feedback.load()
+if not fb.empty:
+    ag = feedback.agreement(fb)
+    c1, c2, c3 = st.columns(3)
+    c1.metric("累積回報", f"{ag['n']} 筆")
+    c2.metric("預測完全一致", f"{ag['exact']:.0%}")
+    c3.metric("差距在一級以內", f"{ag['within1']:.0%}")
+    with st.expander("最近的回報"):
+        st.dataframe(fb.tail(10).iloc[::-1], hide_index=True, width="stretch")
