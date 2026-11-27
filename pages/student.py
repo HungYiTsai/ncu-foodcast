@@ -5,7 +5,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from foodcast import config, predict
+from foodcast import config, explain, predict
 from foodcast.ui import LEVEL_COLORS, get_models, sidebar_inputs
 
 crowd_model, _ = get_models()
@@ -24,6 +24,22 @@ for col, meal in zip(cols, config.MEALS):
     peak = sub.loc[sub["customers"].idxmax()]
     col.success(f"**{meal}推薦 {quiet['slot']} 前往**（預計 {quiet['customers']} 人，{quiet['level']}）\n\n"
                 f"尖峰是 {peak['slot']}（約 {peak['customers']} 人，{peak['level']}）")
+
+# ---- 預測原因 ----
+reasons = explain.explain_crowd(crowd_model, day, temp, rain, event)
+for col, meal in zip(st.columns(2), config.MEALS):
+    col.caption("💡 " + explain.explain_sentence(reasons, meal))
+if not reasons.empty:
+    with st.expander("為什麼會是這個人數？（各因素的影響）"):
+        fig_r = px.bar(reasons, x="pct", y="factor", color="meal", barmode="group", orientation="h",
+                       text=reasons["pct"].map(lambda v: f"{v:+.0f}%"),
+                       labels={"pct": "對人數的影響 (%)", "factor": "", "meal": ""},
+                       color_discrete_map={"午餐": "#2E7D9E", "晚餐": "#E07B39"})
+        fig_r.add_vline(x=0, line_color="gray")
+        fig_r.update_layout(height=120 + 60 * reasons["factor"].nunique(), margin=dict(t=10))
+        st.plotly_chart(fig_r, width="stretch")
+        st.caption("算法：把每個因素改回「一般狀態」（沒下雨、非考試週、週三……）再預測一次，"
+                   "比較兩次的人數差距。各因素分開比較，加總不一定等於總差距。")
 
 # ---- 各時段長條圖 ----
 fig = px.bar(crowd, x="slot", y="customers", color="level", facet_col="meal",
