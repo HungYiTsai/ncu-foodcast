@@ -34,6 +34,18 @@ for meal in config.MEALS:
 st.download_button("⬇️ 下載備餐建議 CSV", df.to_csv(index=False).encode("utf-8-sig"),
                    file_name=f"備餐建議_{day}.csv", mime="text/csv")
 
+# ---- 未來 7 天備餐計畫（方便店家一次規劃一週的進貨）----
+st.subheader("📅 未來 7 天備餐計畫")
+plan = predict.weekly_plan(demand_models, day, q, first_day_weather={"temp": temp, "rain_mm": rain})
+pivot = plan.pivot_table(index="dish", columns="日期", values="recommend", aggfunc="sum")
+pivot = pivot[plan["日期"].unique()]          # 依日期順序排列欄位
+pivot.loc["合計"] = pivot.sum()
+st.dataframe(pivot, width="stretch")
+st.caption("單位：份（午餐＋晚餐合計）。第 2 天之後使用該月平均氣溫、不下雨的預設天氣，"
+           "實際進貨前請參考氣象預報調整。")
+st.download_button("⬇️ 下載 7 天備餐計畫 CSV", plan.to_csv(index=False).encode("utf-8-sig"),
+                   file_name=f"7天備餐計畫_{day}.csv", mime="text/csv")
+
 # ---- 取捨曲線 ----
 st.subheader("剩食與缺貨的取捨（回測結果）")
 t = pd.DataFrame(metrics["demand"]["tradeoff"])

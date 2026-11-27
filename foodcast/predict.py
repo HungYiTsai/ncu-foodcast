@@ -90,6 +90,22 @@ def forecast_demand(models: dict, d: dt.date, temp: float, rain_mm: float,
     return df[["meal", "dish", "expected", "recommend", "buffer"]]
 
 
+def weekly_plan(models: dict, start: dt.date, quantile: float = config.DEFAULT_QUANTILE,
+                days: int = 7, first_day_weather: dict | None = None) -> pd.DataFrame:
+    """
+    產生從 start 開始連續 days 天的備餐計畫（每天、每餐、每個品項一列）。
+    第一天可指定天氣，之後幾天沒有預報，使用該月平均天氣。
+    """
+    rows = []
+    for i in range(days):
+        d = start + dt.timedelta(days=i)
+        w = first_day_weather if (i == 0 and first_day_weather) else default_weather(d)
+        df = forecast_demand(models, d, w["temp"], w["rain_mm"], quantile=quantile)
+        df.insert(0, "日期", f"{d:%m/%d}（{'一二三四五六日'[d.weekday()]}）")
+        rows.append(df)
+    return pd.concat(rows, ignore_index=True)
+
+
 def day_summary(d: dt.date, crowd_df: pd.DataFrame, demand_df: pd.DataFrame,
                 temp: float, rain_mm: float) -> dict:
     """把預測結果整理成精簡的字典，給 AI 助理當作回答依據。"""
