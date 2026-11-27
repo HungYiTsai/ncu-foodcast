@@ -88,6 +88,7 @@ flowchart LR
 | 介面 | Streamlit、Plotly |
 | 生成式 AI（選用） | Azure OpenAI / OpenAI Chat Completions |
 | 測試 | pytest、Streamlit AppTest |
+| 資料分析 | Jupyter Notebook、matplotlib |
 | 協作 | Git、GitHub（branch + Pull Request） |
 | AI 協作工具 | Claude、GitHub Copilot 等（詳見 AI 協作歷程報告） |
 
@@ -155,6 +156,8 @@ cp .env.example .env      # Windows 用 copy
 5. **AI 助理**：點範例問題，或直接輸入「週五晚餐便當要備幾份？」。
 
 ## 7. 模型與評估結果
+
+> 📓 完整的分析過程（含圖表與說明）見 `notebooks/01_eda.ipynb`（資料探索）與 `notebooks/02_modeling.ipynb`（建模與評估），可直接在 GitHub 上點開閱讀。
 
 > 以下數字為在 Python 3.14、scikit-learn 最新版環境執行 `python -m foodcast.train` 的結果。不同套件版本可能有些微差異。
 
@@ -254,6 +257,7 @@ ncu-foodcast/
 │   ├── predict.py          # 預測服務
 │   ├── assistant.py        # AI 助理（LLM + 離線模式）
 │   └── ui.py               # 介面共用元件
+├── notebooks/              # Jupyter Notebook：資料探索（01_eda）與建模評估（02_modeling）
 ├── tests/                  # 自動化測試（test_core.py、test_extensions.py、test_insights.py）
 ├── data/                   # 資料（由程式產生，不上傳）
 ├── models/                 # 模型與評估結果（由程式產生，不上傳）

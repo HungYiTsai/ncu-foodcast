@@ -7,5 +7,8 @@ plotly>=5.20
 joblib>=1.4
 # 開發/測試
 pytest>=8.0
+# Notebook（notebooks/ 資料夾的資料分析與建模過程）
+matplotlib>=3.8
+jupyter>=1.0
 # 選用：要啟用 LLM 模式（Azure OpenAI / OpenAI）才需要安裝
 # openai>=1.40
